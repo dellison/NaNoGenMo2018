@@ -11,3 +11,6 @@ Same as smart reply, really. Task-oriented stuff is mostly irrelevent here.
 ## A model of suspense for narrative generation
 
 ## Synthesis Lectures Narrative book
+
+## Modeling Narrative Discourse (David Elson's Ph.D. dissertation)
+
