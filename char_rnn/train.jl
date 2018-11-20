@@ -1,9 +1,9 @@
 using ArgParse
 using Base.Iterators: partition
-using BSON
 using Dates
 using Flux
 using Flux: onehot, chunk, batchseq, throttle, crossentropy
+using JLD2
 using StatsBase: wsample
 
 ap = ArgParseSettings()
@@ -79,7 +79,8 @@ if args["load-model-file"] == nothing
 else
     modelfile = args["load-model-file"]
     println("loading model from file $modelfile...")
-    model = BSON.@load modelfile
+    # BSON.@load modelfile model
+    JLD2.@load modelfile alphabet model
 end
 
 function loss(xs, ys)
@@ -111,12 +112,14 @@ end
 
 function model_name()
     name = args["model-name"]
-    return "$(name)_$(Dates.now()).bson"
+    return "$(name)_$(Dates.now()).jld2"
 end
     
 
 println("training language model!")
 Flux.@epochs args["epochs"] begin
     Flux.train!(loss, zip(Xs, Ys), opt, cb = throttle(training_cb, 30))
-    BSON.@save model_name() model
+    filename = model_name()
+    println("saving model to $filename...")
+    JLD2.@save filename alphabet model
 end
