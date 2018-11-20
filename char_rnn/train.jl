@@ -13,6 +13,11 @@ ap = ArgParseSettings()
     arg_type = String
     default = "model"
 
+    "--model-output-dir"
+    help = "directory for serialized models"
+    arg_type = String
+    default = "."
+
     "--load-model-file"
     required = false
     default = nothing
@@ -112,10 +117,9 @@ end
 
 function model_name()
     name = args["model-name"]
-    return "$(name)_$(Dates.now()).jld2"
+    return joinpath(args["model-output-dir"], "$(name)_$(Dates.now()).jld2")
 end
     
-
 println("training language model!")
 Flux.@epochs args["epochs"] begin
     Flux.train!(loss, zip(Xs, Ys), opt, cb = throttle(training_cb, 30))
