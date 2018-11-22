@@ -5,7 +5,7 @@ using StatsBase
 
 ap = ArgParseSettings()
 @add_arg_table ap begin
-    "--model-name"
+    "--model"
     help = "model to load"
     arg_type = String
     default = "model"
@@ -19,10 +19,14 @@ ap = ArgParseSettings()
     help = "initial text"
     arg_type = String
     default = ""
+
+    "--output-file"
+    help = ""
+    default = nothing
 end
 args = parse_args(ap)
 
-JLD2.@load args["model-name"] alphabet model
+JLD2.@load args["model"] alphabet model
 
 function generate(model, seed, alphabet, len)
     seed = args["seed"]
@@ -43,4 +47,12 @@ function generate(model, seed, alphabet, len)
     return String(take!(buf))
 end
 
-println(generate(model, args["seed"], alphabet, args["length"]))
+generated_text = generate(model, args["seed"], alphabet, args["length"])
+
+if args["output-file"] == nothing
+    println(generated_text)
+else
+    open(args["output-file"], write=true) do f
+        write(generated_text)
+    end
+end
