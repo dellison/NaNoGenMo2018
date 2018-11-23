@@ -58,6 +58,12 @@ println("reading input...")
 text = gettext(args["training-files"])
 
 println("preparing data...")
+
+# remove carriage returns and normalize whitespace
+text = replace(text, "\r" => "")
+text = replace(text, r"([^\s])\n([^\s])" => s"\1 \2")
+text = replace(text, r"\n+" => "\n")
+
 alphabet = [unique(text)..., stopchar]
 
 text = [onehot(ch, alphabet) for ch in text]
