@@ -18,10 +18,6 @@ ap = ArgParseSettings()
     arg_type = String
     default = "."
 
-    "--load-model-file"
-    required = false
-    default = nothing
-
     "--epochs"
     help = "how many times to iterate over the training data"
     arg_type = Int
@@ -60,9 +56,14 @@ text = gettext(args["training-files"])
 println("preparing data...")
 
 # remove carriage returns and normalize whitespace
-text = replace(text, "\r" => "")
-text = replace(text, r"([^\s])\n([^\s])" => s"\1 \2")
-text = replace(text, r"\n+" => "\n")
+function normalize_whitespace(text)
+    text = replace(text, "\r" => "")
+    text = replace(text, r"([^\s])\n([^\s])" => s"\1 \2")
+    text = replace(text, r"\s+" => " ")
+    return text
+end
+
+text = normalize_whitespace(text)
 
 alphabet = [unique(text)..., stopchar]
 
@@ -72,6 +73,9 @@ stop = onehot(stopchar, alphabet)
 NV = length(alphabet)
 NH = args["hidden-layer-size"]
 
+println("size of dataset: $(length(text)) characters")
+println("size of alphabet: $(length(alphabet)) unique characters\n")
+
 function text2batches(text)
     batchseqs = batchseq(chunk(text, args["batches"]), stop)
     return collect(partition(batchseqs, args["sequence-length"]))
@@ -80,19 +84,14 @@ end
 Xs = text2batches(text)
 Ys = text2batches(text[2:end])
 
-if args["load-model-file"] == nothing
-    println("initializing model...")
-    model = Chain(
-        LSTM(NV, NH),
-        LSTM(NH, NH),
-        Dense(NH, NV),
-        softmax)
-else
-    modelfile = args["load-model-file"]
-    println("loading model from file $modelfile...")
-    # BSON.@load modelfile model
-    JLD2.@load modelfile alphabet model
-end
+println("initializing model...")
+model = Chain(
+    LSTM(NV, NH),
+    LSTM(NH, NH),
+    Dense(NH, NV),
+    softmax)
+nparams = sum(map(length, params(model)))
+println("model has $nparams trainable parameters\n")
 
 function loss(xs, ys)
     loss_ = sum(crossentropy.(model.(xs), ys))
@@ -115,9 +114,11 @@ function sample(model, alphabet, len; temp = 1)
     buf = IOBuffer()
     c = 'T'
     for i = 1:len
-        write(buf, c)
+        write(buf, string(c))
         c = wsample(alphabet, model(onehot(c, alphabet)).data)
     end
+    Flux.reset!(model)
+    Flux.truncate!(model)
     return String(take!(buf))
 end
 
