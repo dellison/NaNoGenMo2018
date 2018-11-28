@@ -44,7 +44,9 @@ function generate(model, seed, alphabet, len)
         write(buf, c)
         c = wsample(alphabet, model(Flux.onehot(c, alphabet)).data)
     end
-    return String(take!(buf))
+    text =  String(take!(buf))
+    text = replace(text, r"(\\[nr])+" => " ")
+    return replace(text, "\\" => "")
 end
 
 generated_text = generate(model, args["seed"], alphabet, args["length"])
